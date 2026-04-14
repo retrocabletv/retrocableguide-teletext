@@ -2,7 +2,9 @@
 
 A standalone teletext page generator that produces `.tti` files compatible with [vbit2](https://github.com/peterkvt80/vbit2) for output on a Raspberry Pi, and optionally `.t42` files for browser-based viewers. The page layout is modelled on off-air captures of the cable channel guide service from 1999.
 
-It's the sibling of [retrocableguide](https://github.com/alexkinch/retrocableguide) but runs completely independently — it has its own M3U/XMLTV feed config and does not depend on the React app.
+## Origin
+
+This project was extracted from [retrocableguide](https://github.com/alexkinch/retrocableguide) — a React-based PAL-era cable TV guide recreation. The teletext generator originally lived at `src/teletext/` inside that repo but shared no runtime code with the React app, so it was split out into this sibling repo where it can run as a pure Node ESM package with its own M3U/XMLTV feed config.
 
 ## Pages
 
