@@ -1,0 +1,21 @@
+{
+  "name": "retrocableguide-teletext",
+  "version": "1.0.0",
+  "description": "Teletext page generator for retro cable guide — produces .tti files for vbit2 and .t42 for browser viewers, driven by M3U/XMLTV feeds.",
+  "type": "module",
+  "scripts": {
+    "generate": "node bin/generate.mjs",
+    "server": "node bin/server.mjs",
+    "build-t42": "node bin/build-t42.mjs"
+  },
+  "bin": {
+    "retrocable-teletext-generate": "bin/generate.mjs",
+    "retrocable-teletext-server": "bin/server.mjs",
+    "retrocable-teletext-build-t42": "bin/build-t42.mjs"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "@iptv/playlist": "^1.2.1",
+    "@iptv/xmltv": "^1.0.1"
+  }
+}
