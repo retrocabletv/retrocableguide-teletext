@@ -1,0 +1,113 @@
+name: publish
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "Tag to rebuild and publish"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  preflight:
+    concurrency:
+      group: publish-${{ github.event.release.tag_name || inputs.tag_name }}
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    outputs:
+      tag_name: ${{ steps.tag.outputs.tag_name }}
+      dockerfile_present: ${{ steps.checks.outputs.dockerfile_present }}
+      publish_flag_enabled: ${{ steps.checks.outputs.publish_flag_enabled }}
+      publish_enabled: ${{ steps.checks.outputs.publish_enabled }}
+    steps:
+      - name: Resolve tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG_NAME="${{ inputs.tag_name }}"
+          else
+            TAG_NAME="${{ github.event.release.tag_name }}"
+          fi
+
+          if [ -z "$TAG_NAME" ]; then
+            echo "tag_name is required" >&2
+            exit 1
+          fi
+
+          echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout tagged commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ steps.tag.outputs.tag_name }}
+
+      - name: Detect publish support
+        id: checks
+        env:
+          ENABLE_DOCKER_PUBLISH: ${{ vars.ENABLE_DOCKER_PUBLISH }}
+        run: |
+          if [ -f Dockerfile ]; then
+            echo "dockerfile_present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "dockerfile_present=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          if [ "$ENABLE_DOCKER_PUBLISH" = "true" ]; then
+            echo "publish_flag_enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish_flag_enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          if [ -f Dockerfile ] && [ "$ENABLE_DOCKER_PUBLISH" = "true" ]; then
+            echo "publish_enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish_enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Log publish status
+        run: |
+          if [ "${{ steps.checks.outputs.publish_enabled }}" = "true" ]; then
+            echo "Docker publish preflight passed for tag ${{ steps.tag.outputs.tag_name }}."
+            exit 0
+          fi
+
+          echo "Docker publish is disabled for tag ${{ steps.tag.outputs.tag_name }}."
+
+          if [ "${{ steps.checks.outputs.dockerfile_present }}" != "true" ]; then
+            echo "Reason: no root Dockerfile exists in this repository."
+          fi
+
+          if [ "${{ steps.checks.outputs.publish_flag_enabled }}" != "true" ]; then
+            echo "Reason: repository or organization variable ENABLE_DOCKER_PUBLISH is not set to 'true'."
+          fi
+
+          echo "Publish workflow skeleton is in place and exits cleanly until container publishing is enabled."
+
+  publish:
+    needs: preflight
+    if: needs.preflight.outputs.publish_enabled == 'true'
+    concurrency:
+      group: publish-${{ needs.preflight.outputs.tag_name }}
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout tagged commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ needs.preflight.outputs.tag_name }}
+
+      - name: Publish implementation not added yet
+        run: |
+          echo "Docker publish has been explicitly enabled and a Dockerfile is present."
+          echo "This skeleton workflow does not yet implement the actual cibot publish steps." >&2
+          exit 1
